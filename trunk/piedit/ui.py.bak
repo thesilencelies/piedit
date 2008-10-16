@@ -4,7 +4,6 @@ import sys
 import os
 import pygtk
 import gtk
-import gtk.glade
 import gnome.ui
 import string
 import PIL.Image
@@ -12,7 +11,7 @@ import piedit.colors
 pygtk.require("2.0")
 
 __author__ = "Steven Anderson"
-__copyright__ = "None, it's yours"
+__copyright__ = "Steven Anderson 2008"
 __credits__ = ["Steven Anderson"]
 __license__ = "GPL"
 __version__ = "0.0.1"
@@ -25,8 +24,8 @@ class Handlers:
     def __init__(self,ui):
         self._ui = ui
         self.file_filter = gtk.FileFilter()
-        self.file_filter.add_pattern("*.bmp")
-        self.file_filter.set_name("BMP Files")
+        self.file_filter.add_pattern("*.png")
+        self.file_filter.set_name("PNG Files")
 
     def on_mainApp_delete_event(self, *args):
         if self._ui.save_changes():
@@ -68,8 +67,8 @@ class Handlers:
         response = fileChooser.run()
         if response == gtk.RESPONSE_OK:
             filename = fileChooser.get_filename()
-            if (not filename == None) and (not filename.endswith(".bmp")):
-                filename = filename + ".bmp"
+            if (not filename == None) and (not filename.endswith(".png")):
+                filename = filename + ".png"
             self._ui.save_image(filename)
             fileChooser.destroy()
             return True
@@ -118,6 +117,7 @@ class UI:
         self.program_width = 10
         
         self.handlers = Handlers(self)
+        self.gladeui.signal_autoconnect(self.handlers)
         self.message_handler = MessageHandler(self)
         self.initialise_ui()
 
@@ -128,7 +128,7 @@ class UI:
             for x in range(len(self.eventBoxes[y])):
                 pixels.append(piedit.colors.hex_to_rgb(self.eventBoxes[x][y].piet_color))
         image.putdata(pixels)
-        image.save(path, "BMP")
+        image.save(path, "PNG")
         self.message_handler.handle_message("FILE_SAVED")
         self.set_current_file(path)
         self.set_changes_made(False)

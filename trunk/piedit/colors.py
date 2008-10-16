@@ -3,7 +3,7 @@ import sys
 import gtk
 
 __author__ = "Steven Anderson"
-__copyright__ = "None, it's yours"
+__copyright__ = "Steven Anderson 2008"
 __credits__ = ["Steven Anderson"]
 __license__ = "GPL"
 __version__ = "0.0.1"
@@ -47,17 +47,22 @@ num_hues = 6
 num_lights = 3
 
 def all_colors():
+    """Generator to return all piet colors"""
     for color in colors:
         yield color
         
 def rgb_to_hex(rgb):
+    """Converts an rgb tuple to a hex string"""
     #print rgb
     return '#%02x%02x%02x'.upper() % rgb
 
 def hex_to_rgb(hex):
+    """Converts a hex string to an rgb tuple"""
     return (int(hex[1:3],16),int(hex[3:5],16),int(hex[5:7],16))
 
 def hue_light_diff(from_color,to_color):
+    """Gets the difference in hue and light between two colors.
+    Expects a from_color and to_color in rgb tuple form"""
     from_hue, from_light = divmod(color_mappings[rgb_to_hex(from_color)],num_lights)
     to_hue, to_light = divmod(color_mappings[rgb_to_hex(to_color)],num_lights)
     
