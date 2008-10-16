@@ -3,7 +3,7 @@ import sys
 import gtk
 
 __author__ = "Steven Anderson"
-__copyright__ = "None, it's yours"
+__copyright__ = "Steven Anderson 2008"
 __credits__ = ["Steven Anderson"]
 __license__ = "GPL"
 __version__ = "0.0.1"
@@ -51,7 +51,7 @@ def all_colors():
         yield color
         
 def rgb_to_hex(rgb):
-    print rgb
+    #print rgb
     return '#%02x%02x%02x'.upper() % rgb
 
 def hex_to_rgb(hex):

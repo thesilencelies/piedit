@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 
+"""Interpreter for the Piet programming language. Can be run directly or 
+imported and used by the GUI"""
+
 import sys
 import gtk
 import PIL.Image
 import colors
+import unionfind
+import getchr
 
 __author__ = "Steven Anderson"
-__copyright__ = "None, it's yours"
+__copyright__ = "Steven Anderson 2008"
 __credits__ = ["Steven Anderson"]
 __license__ = "GPL"
 __version__ = "0.0.1"
@@ -14,60 +19,22 @@ __maintainer__ = "Steven Anderson"
 __email__ = "steven.james.anderson@googlemail.com"
 __status__ = "Production"
 
-def union(parent,child):     
-    if parent.set_size < child.set_size:
-        child, parent = parent, child
-        
-    parent_head = find(parent)
-    child_head = find(child)
-    
-    if parent_head == child_head:
-        return
-    
-    child_head.parent = parent_head
-    child_head.set_label = parent_head.set_label
-    parent_head.set_size = parent_head.set_size + child_head.set_size
-
-def find(item):
-    if item.parent == item:
-        return item
-    else:
-        item.parent = find(item.parent)
-        return item.parent
-
 def print_usage():
+    """Prints usage string for command line"""
     print "Usage: interpreter.py image"
-    
-def get_chr_unix():
-    import tty, termios
-    fd = sys.stdin.fileno()
-    old_settings = termios.tcgetattr(fd)
-    try:
-        tty.setraw(sys.stdin.fileno())
-        ch = sys.stdin.read(1)
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    return ch
-
-def get_chr_windows():
-    import msvcrt
-    return msvcrt.getch()
-
-def get_chr():
-    try:
-        return get_chr_unix()
-    except ImportError:
-        return get_chr_windows()
         
 
 class Interpreter:
+    """The Piet interpreter class"""
     def __init__(self):
+        """Sets up object properties"""
         self.current_pixel = None
         self.dp = 0
         self.cc = 0
         self.switch_cc = True
         self.step = 0 #0 for just moved into color block, 1 for moved to edge
         self.times_stopped = 0
+        self.max_steps = 10000
         self.stack = []
         self.color_blocks = {}
             #Indexed by hue and light change
@@ -92,6 +59,7 @@ class Interpreter:
         }
     
     def run_program(self,path):
+        """Runs a program at the given path"""
         print "Loading image"
         self.load_image(path)   
         print "Scanning color blocks"
@@ -100,6 +68,7 @@ class Interpreter:
         self.start_execution()
         
     def load_image(self,path):
+        """Loads an image and puts pixel data into self.pixels"""
         try:
             self.image = PIL.Image.open(path)
         except IOError:
@@ -117,6 +86,7 @@ class Interpreter:
         self.current_pixel = self.pixels[0][0]
         
     def find_color_blocks(self):
+        """Uses the connected component algorithm to build the program color blocks"""
         next_label = 0
         #Pass 1
         for y in range(self.height):
@@ -131,14 +101,14 @@ class Interpreter:
                         next_label = next_label + 1
                     else:
                         for n in neighbours:
-                            union(n,pixel)
+                            unionfind.union(n,pixel)
         
         #Pass 2
         for y in range(self.height):
             for x in range(self.width):
                 pixel = self.pixels[x][y]
                 if not self.is_background(pixel.color):
-                    root = find(pixel)
+                    root = unionfind.find(pixel)
                     pixel.set_size = root.set_size
                     pixel.set_label = root.set_label
                     #Build color block object
@@ -157,12 +127,14 @@ class Interpreter:
         #           bounds[3][0].x,bounds[3][0].y, bounds[3][1].x, bounds[3][1].y)
                     
     def is_background(self,color):
+        """Tells us if the given color is black or white"""
         if color == colors.white or color == colors.black:
             return True
         else:
             return False
         
     def neighbours(self,pixel):
+        """Finds the neighbours of the given pixel with the same label."""
         neighbours = []
         index = 0;
         x = pixel.x
@@ -181,11 +153,12 @@ class Interpreter:
         return neighbours      
     
     def start_execution(self):
-        #We'll just do ten steps for now
-        for i in range(10000):
+        """Starts the execution of the program"""
+        for i in range(self.max_steps):
             self.do_next_step()
             
-    def do_next_step(self):      
+    def do_next_step(self):     
+        """Executes a step in the program."""
         if self.step == 0:
             #Just moved into color block, so let's move to the edge of color block
             #print "Moving from (%s,%s) to (%s,%s)" % (self.current_pixel.x,self.current_pixel.y,self.color_blocks[self.current_pixel.set_label] \
@@ -229,6 +202,8 @@ class Interpreter:
             error_handler.handle_error("The step wasn't 0 or 1. That should never happen. This must be a bug in my code. Sorry")
     
     def next_pixel(self):
+        """Returns the next pixel in the direction of the dp. If the next
+        pixel is black or a wall, it returns None"""
         cp = self.current_pixel
         if self.dp == 0 \
             and cp.x+1 < self.width \
@@ -250,6 +225,8 @@ class Interpreter:
             return None
             
     def slide_thru_white(self):
+        """Slides through a white block until an obstruction or new color
+        block is reached"""
         next_pixel = self.next_pixel()
         if not next_pixel:
             self.times_stopped = self.times_stopped + 1
@@ -262,6 +239,7 @@ class Interpreter:
             next_pixel = self.next_pixel()    
     
     def handle_stop(self):
+        """Handles the case when an obstruction is the next pixel."""
         self.times_stopped = self.times_stopped + 1
         if (self.times_stopped >= 8):
             self.stop_execution()
@@ -274,70 +252,81 @@ class Interpreter:
                 self.switch_cc = True
     
     def stop_execution(self):
-        print "Execution finished"
+        """Cancels execution of the program"""
+        print "\nExecution finished"
         sys.exit(1)
         
     def toggle_cc(self):
+        """Toggles the cc"""
         #print "Toggling cc"
         div,mod = divmod(1-self.cc,1)
         self.cc = div
     
     def rotate_dp(self,times=1):
+        """Rotates the dp by the given number of times"""
         #print "Rotating dp"
         div,mod = divmod(self.dp+times,4)
         self.dp = mod
         
     #Below are the actual operation methods for the piet language.
-    #The stuff above is 
     def op_add(self):
+        """Piet Add operation"""
         if len(self.stack) >= 2:
             item1 = self.stack.pop()
             item2 = self.stack.pop()
             self.stack.append(item1+item2)
     
     def op_divide(self):
+        """Piet Divide operation"""
         if len(self.stack) >= 2:
             top_item = self.stack.pop()
             second_item = self.stack.pop()
             self.stack.append(second_item/top_item)
     
     def op_greater(self):
+        """Piet Greater operation"""
         if len(self.stack) >= 2:
             top_item = self.stack.pop()
             second_item = self.stack.pop()
             self.stack.append(int(second_item>top_item))
             
-    
     def op_duplicate(self):
+        """Piet Duplicate operation"""
         if len(self.stack) >=1:
             item = self.stack[-1]
             self.stack.append(item)
     
     def op_in_char(self):
-        chr = get_chr()
+        """Piet IN(CHAR) operation"""
+        chr = getchr.get_chr()
         self.stack.append(ord(chr))
     
     def op_push(self):
+        """Piet Push operation"""
         self.stack.append(self.current_pixel.set_size)
     
     def op_subtract(self):
+        """Piet Subtract operation"""
         if len(self.stack) >= 2:
             top_item = self.stack.pop()
             second_item = self.stack.pop()
             self.stack.append(second_item-top_item)
     
     def op_mod(self):
+        """Piet Mod operation"""
         if len(self.stack) >= 2:
             top_item = self.stack.pop()
             second_item = self.stack.pop()
             self.stack.append(second_item % top_item)
     
     def op_pointer(self):
+        """Piet Pointer operation"""
         if len(self.stack) >= 1:
             item = self.stack.pop()
             self.rotate_dp(item)
     
     def op_roll(self):
+        """Piet Roll operation"""
         if len(self.stack) >= 2:
             num_rolls = self.stack.pop()
             depth = self.stack.pop()    
@@ -346,6 +335,7 @@ class Interpreter:
                     self.roll(depth,num_rolls<0)    
     
     def roll(self,depth,reverse):
+        """Does a single roll"""
         if depth > len(self.stack):
             depth = len(self.stack)
 
@@ -361,52 +351,62 @@ class Interpreter:
             for i in range(len(self.stack)-1,index,-1):
                 self.stack[i] = self.stack[i-1]    
             self.stack[index] = top_item
-            
     
     def op_out_number(self):
+        """Piet OUT(NUM) operation"""
         if len(self.stack) >=1:
             item = self.stack.pop()
-            print item
+            sys.stdout.write(str(item))
     
     def op_pop(self):
+        """Piet Pop operation"""
         self.stack.pop()
     
     def op_multiply(self):
+        """Piet Multiply operation"""
         if len(self.stack) >= 2:
             item1 = self.stack.pop()
             item2 = self.stack.pop()
             self.stack.append(item1*item2)
     
     def op_not(self):
+        """Piet Not operation"""
         if len(self.stack) >= 1:
             item = self.stack.pop()
             self.stack.append(int(not item))
     
     def op_switch(self):
+        """Piet Switch operation"""
         if len(self.stack) >=1:
             item = self.stack.pop()
             for i in range(item):
                 self.toggle_cc()
     
     def op_in_number(self):
-        char = get_chr()
+        """Piet IN(NUM) operation"""
+        char = getchr.get_chr()
         try:
             self.stack.append(int(char))
         except ValueError:
             pass      
     
     def op_out_char(self):
+        """Piet OUT(CHAR) operation"""
         if len(self.stack) >=1:
             item = self.stack.pop()
-            print chr(item)
+            sys.stdout.write(chr(item))
+    
     
 class ColorBlock:
+    """Class that represents a color block in a Piet program"""
     def __init__(self,size):
+        """Sets the boundary pixels to None"""
         self.size = size
-        #boundary_pixels = [[DPR_L,DPR_R],[DPD_L,DPD,R] ... etc.
+        #boundary_pixels = [[DPR_CCL,DPR_CCR],[DPD_CCL,DPD,CCR] ... etc.
         self.boundary_pixels = [[None,None] for i in range(4)]
         
     def update_boundaries(self,pixel):
+        """Updates the boundary pixels of the current color block given a new pixel"""
         #If a new maximum (right, left)
         if self.boundary_pixels[0][0] == None or pixel.x > self.boundary_pixels[0][0].x:
             self.boundary_pixels[0][0] = pixel
@@ -439,10 +439,13 @@ class ColorBlock:
         if self.boundary_pixels[3][1] == None or pixel.y == self.boundary_pixels[3][1].y:
             self.boundary_pixels[3][1] = pixel
                 
-            
-        
+             
 class Pixel:
+    """Class that represents a pixel in a Piet program (stricly a codel, but 
+    the convention is 1 pixel per codel"""
+    
     def __init__(self,x,y,color):
+        """Sets object properties. Sets color to white if it's a non-Piet color"""
         self.x = x
         self.y = y
         try:
@@ -453,23 +456,24 @@ class Pixel:
         self.parent = self   
         self.set_size = 1
         self.set_label = -1
-
-    def set_color_block(color_block):
-        self.color_block = color_block
-    
-    def get_color_block():
-        return self.color_block
+        
     
 class ErrorHandler:
+    """Class that handles errors for the interpreter. Does it differently
+    for UI and command line modes"""
+    
     def __init__(self, isGUI=False):
+        """Sets object properties"""
         self.isGUI = isGUI
         
     def handle_error(self,message):
+        """Handles an error with the given message"""
         if not self.isGUI:
-            raise SystemExit("Error: "+message)
+            raise SystemExit("\nError: "+message)
         else:
             pass
     
+#Run the program if on command line
 if __name__ == "__main__":
     error_handler = ErrorHandler(False)
     interpreter = Interpreter()
