@@ -34,7 +34,7 @@ class Interpreter:
         self.switch_cc = True
         self.step = 0 #0 for just moved into color block, 1 for moved to edge
         self.times_stopped = 0
-        self.max_steps = 10000
+        self.max_steps = 1000000
         self.stack = []
         self.color_blocks = {}
             #Indexed by hue and light change
@@ -71,6 +71,8 @@ class Interpreter:
         """Loads an image and puts pixel data into self.pixels"""
         try:
             self.image = PIL.Image.open(path)
+            if self.image.mode != "RGB":
+                self.image = self.image.convert("RGB")
         except IOError:
             raise IOError, "IMAGE_NOT_LOADED"
         
@@ -356,7 +358,7 @@ class Interpreter:
         """Piet OUT(NUM) operation"""
         if len(self.stack) >=1:
             item = self.stack.pop()
-            print item,
+            sys.stdout.write(str(item))
     
     def op_pop(self):
         """Piet Pop operation"""
@@ -394,7 +396,6 @@ class Interpreter:
         """Piet OUT(CHAR) operation"""
         if len(self.stack) >=1:
             item = self.stack.pop()
-            #print chr(item),
             sys.stdout.write(chr(item))
     
     

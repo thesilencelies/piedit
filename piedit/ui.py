@@ -130,8 +130,10 @@ class UI:
         self.gladeui = gladeui
         self.selected_color_widget = None
         
-        self.program_height = 10
-        self.program_width = 10
+        self.default_height = 10
+        self.default_width = 10
+        self.max_width = 1000
+        self.max_height = 1000
         
         self.handlers = Handlers(self)
         self.gladeui.signal_autoconnect(self.handlers)
@@ -156,17 +158,20 @@ class UI:
         """Loads an image from file and displays it in the program table"""
         try:
             image = PIL.Image.open(path)
+            if image.mode != "RGB":
+                image = image.convert("RGB")
         except IOError:
             self.message_handler.handle_error("FILE_NOT_LOADED")
             return
         (width, height) = image.size
-        if width>10 or height>10:
+        self.resize_program_table(width,height)
+        if width>self.max_width or height>self.max_height:
             self.message_handler.handle_error("IMAGE_TOO_BIG")
         else:
             pixels = list(image.getdata())
             index = 0
-            for y in range(len(self.eventBoxes)):
-                for x in range(len(self.eventBoxes[y])):
+            for y in range(height):
+                for x in range(width):
                     rgb = pixels[index]
                     color = gtk.gdk.color_parse(piedit.colors.rgb_to_hex(rgb))
                     self.eventBoxes[x][y].modify_bg(
@@ -253,32 +258,10 @@ class UI:
         the program table event boxes. Attaches handlers and sets colors etc."""
         
         #Add event boxes to program table
-        self.gladeui.get_widget("programTableEventBox").modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("black"))
-        self.eventBoxes = [[gtk.EventBox() for y in range(self.program_height)] for x in range(self.program_width)]
-        self.codelColors = [gtk.EventBox() for color in piedit.colors.all_colors()]
-
-        for y in range(len(self.eventBoxes)):
-            for x in range(len(self.eventBoxes[y])):
-                self.eventBoxes[x][y].set_events(gtk.gdk.BUTTON_PRESS_MASK)
-                self.eventBoxes[x][y].x_location = x
-                self.eventBoxes[x][y].y_location = y
-                self.eventBoxes[x][y].visible = True
-                self.gladeui.get_widget("programTable").attach(
-                    self.eventBoxes[x][y],
-                    x,
-                    x+1,
-                    y,
-                    y+1,
-                    xoptions=gtk.EXPAND|gtk.FILL, 
-                    yoptions=gtk.EXPAND|gtk.FILL, 
-                    xpadding=1, 
-                    ypadding=1)
-                self.eventBoxes[x][y].piet_color = piedit.colors.white_hex
-                self.eventBoxes[x][y].modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("white"))
-                self.eventBoxes[x][y].connect("button_press_event", self.handlers.on_programTableCell_clicked)
-                self.eventBoxes[x][y].show()
+        self.initialise_program_table(self.default_width, self.default_height)
         
         #Add event boxes to codel color chooser
+        self.codelColors = [gtk.EventBox() for color in piedit.colors.all_colors()]
         for (color,(x,y),i) in zip(piedit.colors.all_colors(),
                    ((x,y) for x in range(7) for y in range(3)),
                    range(len(self.codelColors))):  
@@ -303,6 +286,40 @@ class UI:
         
         #Initialise image
         self.clear_image()
+        
+    def initialise_program_table(self,width,height):
+        self.gladeui.get_widget("programTableEventBox").modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#222222"))
+        self.gladeui.get_widget("programTable").resize(rows=height,columns=width)
+        self.eventBoxes = [[gtk.EventBox() for y in range(height)] for x in range(width)]
+
+        for y in range(height):
+            for x in range(width):
+                print x,y
+                self.eventBoxes[x][y].set_events(gtk.gdk.BUTTON_PRESS_MASK)
+                self.eventBoxes[x][y].x_location = x
+                self.eventBoxes[x][y].y_location = y
+                self.eventBoxes[x][y].visible = True
+                self.gladeui.get_widget("programTable").attach(
+                    self.eventBoxes[x][y],
+                    x,
+                    x+1,
+                    y,
+                    y+1,
+                    xoptions=gtk.EXPAND|gtk.FILL, 
+                    yoptions=gtk.EXPAND|gtk.FILL, 
+                    xpadding=1, 
+                    ypadding=1)
+                self.eventBoxes[x][y].piet_color = piedit.colors.white_hex
+                self.eventBoxes[x][y].modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("white"))
+                self.eventBoxes[x][y].connect("button_press_event", self.handlers.on_programTableCell_clicked)
+                self.eventBoxes[x][y].show()       
+    
+    def resize_program_table(self,width,height):
+        self.gladeui.get_widget("programTable").foreach(self.remove_widget)
+        self.initialise_program_table(width,height)
+    
+    def remove_widget(self,widget):
+        widget.destroy()
     
 class MessageHandler:
     """Class to handle errors and display them to the user"""
