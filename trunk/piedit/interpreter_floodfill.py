@@ -138,7 +138,7 @@ class Interpreter:
         self.boundary_pixel_coords = None
         self.floodfill(coords,"WTF",color)
         self.current_pixel_coords = self.boundary_pixel_coords
-        print self.boundary_pixel_coords
+        #print self.boundary_pixel_coords
         
     def floodfill(self,pixel_coords,from_color,to_color):
         """Recurively fills a color block with another color"""

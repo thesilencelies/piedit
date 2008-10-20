@@ -161,18 +161,15 @@ class Interpreter:
             
     def do_next_step(self):     
         """Executes a step in the program."""
+        #print "At (%s,%s)" % (self.current_pixel.x,self.current_pixel.y)
         if self.step == 0:
-            #Just moved into color block, so let's move to the edge of color block
-            #print "Moving from (%s,%s) to (%s,%s)" % (self.current_pixel.x,self.current_pixel.y,self.color_blocks[self.current_pixel.set_label] \
-            #    .boundary_pixels[self.dp][self.cc].x,self.color_blocks[self.current_pixel.set_label] \
-            #    .boundary_pixels[self.dp][self.cc].y)
             self.current_pixel = \
                 self.color_blocks[self.current_pixel.set_label] \
                 .boundary_pixels[self.dp][self.cc]
             self.step = 1
         elif self.step == 1:
             next_pixel = self.next_pixel()
-            if next_pixel and next_pixel.color == colors.white:
+            if (not next_pixel and self.current_pixel.color == colors.white) or (next_pixel and next_pixel.color == colors.white):
                 if self.current_pixel.color != colors.white:
                     self.switch_cc = True
                     self.times_stopped = 0
@@ -180,24 +177,17 @@ class Interpreter:
                 self.slide_thru_white()
                 self.step = 1
             else:
-                #print "DP=%s, CC=%s" % (self.dp,self.cc)
                 if next_pixel:
                     self.switch_cc = True
                     self.times_stopped = 0
                 
-                    #Do operation as long as we're not moving out of white
                     if self.current_pixel.color != colors.white:
-                        ##print "Moving from (%s,%s) to (%s,%s)" % (self.current_pixel.x, self.current_pixel.y, next_pixel.x,next_pixel.y)
                         hue_light_diff = colors.hue_light_diff(self.current_pixel.color, next_pixel.color)
                         op_name, op = self.operations[hue_light_diff]
-                        #print "Before: ",self.stack
-                        #print "OP: (%s,%s) - %s" % (hue_light_diff[0],hue_light_diff[1],op_name)
                         op()
-                        #print "After: ",self.stack
                     
                     self.current_pixel = next_pixel
                 else:
-                    #print "At (%s,%s) - hit a stop" % (self.current_pixel.x, self.current_pixel.y)
                     self.handle_stop()
                 self.step = 0
         else:
@@ -362,7 +352,8 @@ class Interpreter:
     
     def op_pop(self):
         """Piet Pop operation"""
-        self.stack.pop()
+        if len(self.stack) >=1:
+            self.stack.pop()
     
     def op_multiply(self):
         """Piet Multiply operation"""

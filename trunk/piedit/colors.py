@@ -39,8 +39,8 @@ for index,color in enumerate(colors):
     color_mappings[color] = index
 
 white = (255,255,255)
-white_hex = "#FFFFFF"
 black = (0,0,0)
+white_hex = "#FFFFFF"
 black_hex = "#000000"
 
 num_hues = 6
@@ -54,11 +54,26 @@ def all_colors():
 def rgb_to_hex(rgb):
     """Converts an rgb tuple to a hex string"""
     #print rgb
+    if len(rgb) <3:
+        return rgb
     return '#%02x%02x%02x'.upper() % rgb
 
 def hex_to_rgb(hex):
     """Converts a hex string to an rgb tuple"""
     return (int(hex[1:3],16),int(hex[3:5],16),int(hex[5:7],16))
+
+def is_white(hex):
+    if hex == white:
+        return True
+    else:
+        try:
+            color_mappings[hex]
+            return False
+        except KeyError:
+            return True
+    
+def is_black(hex):
+    return hex == black
 
 def hue_light_diff(from_color,to_color):
     """Gets the difference in hue and light between two colors.
