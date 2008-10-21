@@ -309,7 +309,7 @@ class UI:
                     yoptions=gtk.EXPAND|gtk.FILL, 
                     xpadding=1, 
                     ypadding=1)
-                self.eventBoxes[x][y].piet_color = piedit.colors.white_hex
+                self.eventBoxes[x][y].piet_color = piedit.colors.white
                 self.eventBoxes[x][y].modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("white"))
                 self.eventBoxes[x][y].connect("button_press_event", self.handlers.on_programTableCell_clicked)
                 self.eventBoxes[x][y].show()       

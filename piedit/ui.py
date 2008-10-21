@@ -294,7 +294,7 @@ class UI:
 
         for y in range(height):
             for x in range(width):
-                print x,y
+                #print x,y
                 self.eventBoxes[x][y].set_events(gtk.gdk.BUTTON_PRESS_MASK)
                 self.eventBoxes[x][y].x_location = x
                 self.eventBoxes[x][y].y_location = y
@@ -309,7 +309,7 @@ class UI:
                     yoptions=gtk.EXPAND|gtk.FILL, 
                     xpadding=1, 
                     ypadding=1)
-                self.eventBoxes[x][y].piet_color = piedit.colors.white_hex
+                self.eventBoxes[x][y].piet_color = piedit.colors.white
                 self.eventBoxes[x][y].modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("white"))
                 self.eventBoxes[x][y].connect("button_press_event", self.handlers.on_programTableCell_clicked)
                 self.eventBoxes[x][y].show()       
