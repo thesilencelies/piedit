@@ -24,7 +24,7 @@ __status__ = "Production"
 
 class Interpreter:
     """The Piet interpreter class"""
-    def __init__(self):
+    def __init__(self, max_steps=1000000):
         """Initalizes new Interpreter."""
         self.current_pixel = None
         self.dp = 0
@@ -32,9 +32,10 @@ class Interpreter:
         self.switch_cc = True
         self.step = 0 #0 for just moved into color block, 1 for moved to edge
         self.times_stopped = 0
-        self.max_steps = 1000000
+        self.max_steps = max_steps
         self.stack = []
         self.color_blocks = {}
+        self.finished = False
         #Indexed by hue and light change
         self.operations = {
             (1,0):("Add",self.op_add),
@@ -55,6 +56,9 @@ class Interpreter:
             (4,2):("IN(Number)",self.op_in_number),
             (5,2):("OUT(Char)",self.op_out_char),
         }
+    
+    def init(self):
+        self.__init__()
         
     def set_opt(self,o,a):
         """Sets an option from the command line."""
@@ -158,12 +162,14 @@ class Interpreter:
     def start_execution(self):
         """Starts the execution of the program."""
         if self.max_steps == -1:
-            while True:
+            while not self.finished:
                 self.do_next_step()
         else:
             for i in range(self.max_steps):
                 self.do_next_step()
-        debug.writeln("---EXECUTION FINISHED (Max Steps Reached)---")
+                if self.finished:
+                    return
+            debug.writeln("---EXECUTION FINISHED (Max Steps Reached)---")
             
     def do_next_step(self,step=None):     
         """Executes a step in the program."""
@@ -293,7 +299,7 @@ class Interpreter:
     def stop_execution(self):
         """Cancels execution of the program."""
         debug.writeln("---EXECUTION FINISHED---")
-        sys.exit(1)
+        self.finished = True
         
     def toggle_cc(self):
         """Toggles the cc."""
@@ -396,6 +402,7 @@ class Interpreter:
         if len(self.stack) >=1:
             item = self.stack.pop()
             sys.stdout.write(str(item))
+            sys.stdout.flush()
     
     def op_pop(self):
         """Piet Pop operation."""
@@ -435,6 +442,7 @@ class Interpreter:
         if len(self.stack) >=1:
             item = self.stack.pop()
             sys.stdout.write(chr(item))
+            sys.stdout.flush()
     
     
 class ColorBlock:

@@ -8,6 +8,7 @@ import gnome.ui
 import string
 import PIL.Image
 import piedit.colors
+import piedit.interpreter
 pygtk.require("2.0")
 
 __author__ = "Steven Anderson"
@@ -103,6 +104,16 @@ class Handlers:
   
     #View Menu
     #No handlers here yet
+    
+    #Run Menu
+    def on_runRunMenuItem_activate(self,*args):
+        """Handler for Run|Run menu item"""
+        self._ui.interpreter.init()
+        self._ui.interpreter.run_program(self._ui.current_file)
+    
+    def on_runDebugMenuItem_activate(self,*args):
+        """Handler for Run|Debug menu item"""
+        pass
 
     #Help Menu
     def on_helpAboutMenuItem_activate(self,*args):
@@ -138,6 +149,7 @@ class UI:
         self.handlers = Handlers(self)
         self.gladeui.signal_autoconnect(self.handlers)
         self.message_handler = MessageHandler(self)
+        self.interpreter = piedit.interpreter.Interpreter()
         self.initialise_ui()
 
     def save_image(self,path):
