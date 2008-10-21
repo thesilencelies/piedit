@@ -77,14 +77,8 @@ class Interpreter:
             raise IOError, "IMAGE_NOT_LOADED"
         
         (self.width, self.height) = self.image.size
-        self.rawpixels = self.image.getdata()
-        self.pixels = [[None for y in range(self.height)] for x in range(self.width)]
-        i = 0
-        for y in range(self.height):
-            for x in range(self.width):
-                self.pixels[x][y] = Pixel(x,y,self.rawpixels[i])
-                #print self.rawpixels[i]
-                i = i + 1
+        rawpixels = self.image.getdata()
+        self.pixels = [[Pixel(x,y,colors.rgb_to_hex(rawpixels[y*(self.width)+x])) for y in range(self.height)] for x in range(self.width)]
         self.current_pixel = self.pixels[0][0]
         
     def find_color_blocks(self):
@@ -130,7 +124,7 @@ class Interpreter:
                     
     def is_background(self,color):
         """Tells us if the given color is black or white"""
-        if color == colors.white or color == colors.black:
+        if  colors.is_white(color) or colors.is_black(color):
             return True
         else:
             return False
@@ -161,78 +155,111 @@ class Interpreter:
             
     def do_next_step(self):     
         """Executes a step in the program."""
-        #print "At (%s,%s)" % (self.current_pixel.x,self.current_pixel.y)
         if self.step == 0:
-            self.current_pixel = \
-                self.color_blocks[self.current_pixel.set_label] \
-                .boundary_pixels[self.dp][self.cc]
             self.step = 1
+            self.move_within_block()
+            #print "DP: %s, CC:%s" % (self.dp, self.cc)            
+            #print "Moved within block to %s,%s" % (self.current_pixel.x,self.current_pixel.y)
         elif self.step == 1:
-            next_pixel = self.next_pixel()
-            if (not next_pixel and self.current_pixel.color == colors.white) or (next_pixel and next_pixel.color == colors.white):
-                if self.current_pixel.color != colors.white:
-                    self.switch_cc = True
-                    self.times_stopped = 0
-                #print "sliding trhu white"
-                self.slide_thru_white()
-                self.step = 1
-            else:
-                if next_pixel:
-                    self.switch_cc = True
-                    self.times_stopped = 0
-                
-                    if self.current_pixel.color != colors.white:
-                        hue_light_diff = colors.hue_light_diff(self.current_pixel.color, next_pixel.color)
-                        op_name, op = self.operations[hue_light_diff]
-                        op()
-                    
-                    self.current_pixel = next_pixel
-                else:
-                    self.handle_stop()
-                self.step = 0
+            self.step = 0           
+            self.move_out_of_block()  
+            #print "DP: %s, CC:%s" % (self.dp, self.cc)             
+            #print "Moved out of block to %s,%s" % (self.current_pixel.x,self.current_pixel.y)                     
         else:
             error_handler.handle_error("The step wasn't 0 or 1. That should never happen. This must be a bug in my code. Sorry")
-    
-    def next_pixel(self):
-        """Returns the next pixel in the direction of the dp. If the next
-        pixel is black or a wall, it returns None"""
-        cp = self.current_pixel
-        if self.dp == 0 \
-            and cp.x+1 < self.width \
-            and self.pixels[cp.x+1][cp.y].color != colors.black:
-                return self.pixels[cp.x+1][cp.y]
-        elif self.dp == 1 \
-            and cp.y+1 < self.height \
-            and self.pixels[cp.x][cp.y+1].color != colors.black:
-                return self.pixels[cp.x][cp.y+1]
-        elif self.dp == 2 \
-            and cp.x-1 >= 0 \
-            and self.pixels[cp.x-1][cp.y].color != colors.black:
-                return self.pixels[cp.x-1][cp.y]
-        elif self.dp == 3 \
-            and cp.y-1 >= 0 \
-            and self.pixels[cp.x][cp.y-1].color != colors.black:
-                return self.pixels[cp.x][cp.y-1]
-        else:
-            return None
             
-    def slide_thru_white(self):
-        """Slides through a white block until an obstruction or new color
-        block is reached"""
-        next_pixel = self.next_pixel()
-        if not next_pixel:
-            self.times_stopped = self.times_stopped + 1
-            if self.times_stopped >= 8:
-                self.stop_execution
-            self.toggle_cc()
-            self.rotate_dp()
-        while next_pixel and next_pixel.color == colors.white:
-            self.current_pixel = next_pixel
-            next_pixel = self.next_pixel()    
+    def move_within_block(self):
+        """Moves to the border pixel within the current color block"""
+        if colors.is_white(self.current_pixel.color):
+            self.move_within_white()
+        else:
+            self.move_within_color()
     
-    def handle_stop(self):
+    def move_within_white(self):
+        """Slides through a white block until an obstruction or a
+        new color block is found"""
+        x,y = self.next_pixel_coords()
+        if not self.check_pixel(x,y):
+            return
+        next_pixel = self.pixels[x][y]
+        
+        while colors.is_white(next_pixel.color):
+            #print "Setting current pixel to %s,%s" %(next_pixel.x, next_pixel.y)
+            self.current_pixel = next_pixel
+            x,y = self.next_pixel_coords()
+            #print "Checking pixel at %s,%s" % (x,y)
+            if not self.check_pixel(x,y):
+                #print "Obstruction"
+                return
+            
+            #print "No obstruction"
+            next_pixel = self.pixels[x][y]
+            
+    def check_pixel(self,x,y):
+        if (x<0 or y<0 or x>=self.width or y>=self.height):
+            self.hit_obstruction()
+            return False
+        return True
+            
+    def move_within_color(self):
+        """Moves within a color block to the required pixel
+        at the max dp/cc direction"""
+        self.current_pixel = self.color_blocks\
+            [self.current_pixel.set_label].boundary_pixels\
+            [self.dp][self.cc]
+            
+    def move_out_of_block(self):
+        """Moves out of a color block and into the next color block, performing
+        the operation if necessary"""
+        
+        #If we're at a wall
+        x,y = self.current_pixel.x, self.current_pixel.y
+        if (self.dp == 0 and x >= self.width-1)\
+            or (self.dp == 1 and y >= self.height-1)\
+            or (self.dp == 2 and x <= 0)\
+            or (self.dp == 3 and y <= 0):
+                self.hit_obstruction()
+                return
+        
+        current_pixel = self.current_pixel
+        n_x,n_y = self.next_pixel_coords()
+        next_pixel = self.pixels[n_x][n_y]
+        #If we're at a black pixel
+        if colors.is_black(next_pixel.color):
+            self.hit_obstruction()
+            return
+            
+        if colors.is_white(current_pixel.color)\
+            or colors.is_white(next_pixel.color):
+                pass
+        else:
+            #Get the operation to do
+            hue_light_diff = colors.hue_light_diff(current_pixel.color,next_pixel.color)
+            op_name, op = self.operations[hue_light_diff]
+            #print op_name
+            op()
+        self.current_pixel = next_pixel
+        self.times_stopped = 0
+        self.switch_cc = True
+    
+    def next_pixel_coords(self):
+        """Returns the next pixel in the direction of the dp"""
+        x,y = self.current_pixel.x, self.current_pixel.y
+        if self.dp == 0:
+            return (x+1,y)
+        elif self.dp == 1:
+            return (x,y+1)
+        elif self.dp == 2:
+            return (x-1,y)
+        elif self.dp == 3:
+            return (x,y-1)
+        else:
+            error_handler.handle_error("The DP managed to become none of 0,1,2,3. This is a bug. Sorry")
+    
+    def hit_obstruction(self):
         """Handles the case when an obstruction is the next pixel."""
         self.times_stopped = self.times_stopped + 1
+        self.step = 0
         if (self.times_stopped >= 8):
             self.stop_execution()
         else:
@@ -441,11 +468,7 @@ class Pixel:
         """Sets object properties. Sets color to white if it's a non-Piet color"""
         self.x = x
         self.y = y
-        try:
-            colors.color_mappings[colors.rgb_to_hex(color)]
-            self.color = color
-        except KeyError:
-            self.color = colors.white
+        self.color = color
         self.parent = self   
         self.set_size = 1
         self.set_label = -1
