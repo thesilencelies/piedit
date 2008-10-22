@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.5 on Tue Oct 21 22:46:45 2008 -->
+<!--Generated with glade3 3.4.5 on Wed Oct 22 20:04:50 2008 -->
 <glade-interface>
   <requires lib="bonobo"/>
   <requires lib="gnome"/>
@@ -159,15 +159,55 @@
                           </widget>
                         </child>
                         <child>
+                          <widget class="GtkSeparatorMenuItem" id="separatormenuitem3">
+                            <property name="visible">True</property>
+                          </widget>
+                        </child>
+                        <child>
                           <widget class="GtkImageMenuItem" id="runDebugMenuItem">
                             <property name="visible">True</property>
                             <property name="label" translatable="yes">_Debug</property>
                             <property name="use_underline">True</property>
                             <signal name="activate" handler="on_runDebugMenuItem_activate"/>
                             <child internal-child="image">
+                              <widget class="GtkImage" id="menu-item-image4">
+                                <property name="visible">True</property>
+                                <property name="stock">gtk-media-forward</property>
+                              </widget>
+                            </child>
+                          </widget>
+                        </child>
+                        <child>
+                          <widget class="GtkImageMenuItem" id="runStepMenuItem">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="label" translatable="yes">_Next Step</property>
+                            <property name="use_underline">True</property>
+                            <signal name="activate" handler="on_runStepMenuItem_activate"/>
+                            <child internal-child="image">
                               <widget class="GtkImage" id="menu-item-image2">
                                 <property name="visible">True</property>
-                                <property name="stock">gtk-media-next</property>
+                                <property name="stock">gtk-media-forward</property>
+                              </widget>
+                            </child>
+                          </widget>
+                        </child>
+                        <child>
+                          <widget class="GtkSeparatorMenuItem" id="separatormenuitem2">
+                            <property name="visible">True</property>
+                          </widget>
+                        </child>
+                        <child>
+                          <widget class="GtkImageMenuItem" id="runStopMenuItem">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="label" translatable="yes">_Stop</property>
+                            <property name="use_underline">True</property>
+                            <signal name="activate" handler="on_runStopMenuItem_activate"/>
+                            <child internal-child="image">
+                              <widget class="GtkImage" id="menu-item-image3">
+                                <property name="visible">True</property>
+                                <property name="stock">gtk-stop</property>
                               </widget>
                             </child>
                           </widget>
@@ -675,10 +715,9 @@
       </packing>
     </child>
     <child internal-child="appbar">
-      <widget class="GnomeAppBar" id="app1-appbar2">
+      <widget class="GnomeAppBar" id="statusBar">
         <property name="visible">True</property>
         <property name="spacing">4</property>
-        <property name="has_progress">True</property>
         <property name="has_status">True</property>
       </widget>
       <packing>
