@@ -9,6 +9,7 @@ import string
 import PIL.Image
 import piedit.colors
 import piedit.interpreter
+import piedit.debug
 pygtk.require("2.0")
 
 __author__ = "Steven Anderson"
@@ -19,6 +20,9 @@ __version__ = "0.0.1"
 __maintainer__ = "Steven Anderson"
 __email__ = "steven.james.anderson@googlemail.com"
 __status__ = "Production"
+
+class UserStoppedProgramError(Exception):
+    pass
 
 class Handlers:
     """Defines the signal handlers for the ui"""
@@ -105,16 +109,47 @@ class Handlers:
     #View Menu
     #No handlers here yet
     
-    #Run Menu
+    #Run Menu    
     def on_runRunMenuItem_activate(self,*args):
         """Handler for Run|Run menu item"""
-        self._ui.interpreter.init()
-        self._ui.interpreter.run_program(self._ui.current_file)
+        try:
+            self.set_run_menu(running=True,status="Running...")
+            self._ui.interpreter.init()
+            piedit.debug.DEBUG = False
+            self._ui.interpreter.run_program(self._ui.current_file)
+            self.set_run_menu(running=False,status="Complete")
+        except UserStoppedProgramError:
+            return
     
     def on_runDebugMenuItem_activate(self,*args):
         """Handler for Run|Debug menu item"""
-        pass
+        self.set_run_menu(running=True,status="Debugging...",debug=True)
+        self._ui.interpreter.init()
+        piedit.debug.DEBUG = True
+        self._ui.interpreter.run_program(self._ui.current_file,start=False)
+    
+    def on_runStepMenuItem_activate(self,*args):
+        if self._ui.interpreter.do_next_debug_step():
+            pass
+        else:
+            self.set_run_menu(running=False,status="Complete")
 
+    def on_runStopMenuItem_activate(self,*args):
+        self.set_run_menu(running=False,status="Stopped")
+        raise UserStoppedProgramError()
+        
+    def set_run_menu(self,running,status,debug=False):
+        if running:
+            self._ui.gladeui.get_widget("runRunMenuItem").set_sensitive(False)
+            self._ui.gladeui.get_widget("runDebugMenuItem").set_sensitive(False)
+            self._ui.gladeui.get_widget("runStopMenuItem").set_sensitive(True)
+            self._ui.gladeui.get_widget("runStepMenuItem").set_sensitive(debug)
+        else:
+            self._ui.gladeui.get_widget("runStopMenuItem").set_sensitive(False)
+            self._ui.gladeui.get_widget("runStepMenuItem").set_sensitive(False)
+            self._ui.gladeui.get_widget("runRunMenuItem").set_sensitive(True)
+            self._ui.gladeui.get_widget("runDebugMenuItem").set_sensitive(True)
+        self._ui.gladeui.get_widget("statusBar").set_status(status)
     #Help Menu
     def on_helpAboutMenuItem_activate(self,*args):
         """Handler for Help|About menu item"""

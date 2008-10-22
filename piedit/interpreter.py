@@ -33,6 +33,7 @@ class Interpreter:
         self.step = 0 #0 for just moved into color block, 1 for moved to edge
         self.times_stopped = 0
         self.max_steps = max_steps
+        self.current_step = 0
         self.stack = []
         self.color_blocks = {}
         self.finished = False
@@ -67,7 +68,7 @@ class Interpreter:
         elif o in ["-m","--maxsteps"]:
             self.max_steps = int(a)
     
-    def run_program(self,path):
+    def run_program(self,path,start=True):
         """Runs a program at the given path."""
         debug.writeln("---LOADING IMAGE %s...---" % (path))
         self.load_image(path)   
@@ -76,7 +77,13 @@ class Interpreter:
         self.find_color_blocks()
         debug.writeln("---COLOR BLOCKS SCANNED---\n")
         debug.writeln("---STARTING EXECUTION---")
-        self.start_execution()
+        debug.writeln("AT (%s,%s), COLOR=%s, DP=%d, CC=%s"\
+            % (self.current_pixel.x,self.current_pixel.y,self.current_pixel.color,\
+            self.dp, self.cc))
+        if start:
+            self.start_execution()
+        else:
+            pass
         
     def load_image(self,path):
         """Loads an image and puts pixel data into self.pixels."""
@@ -171,12 +178,23 @@ class Interpreter:
                     return
             debug.writeln("---EXECUTION FINISHED (Max Steps Reached)---")
             
+    def do_next_debug_step(self):
+        if self.max_steps == -1:
+            self.do_next_step()
+        else:
+            if self.current_step < self.max_steps:
+                self.do_next_step()
+            else:
+                return False
+                debug.writeln("---EXECUTION FINISHED (Max Steps Reached)---")
+        if self.finished:
+            return False
+        else:
+            return True
+            
     def do_next_step(self,step=None):     
         """Executes a step in the program."""
-        debug.writeln()
-        debug.writeln("AT (%s,%s), COLOR=%s, DP=%d, CC=%s"\
-            % (self.current_pixel.x,self.current_pixel.y,self.current_pixel.color,\
-            self.dp, self.cc))
+        self.current_step = self.current_step + 1
         if self.step == 0:
             debug.writeln("  -> Moving within color block...")
             self.step = 1
@@ -187,6 +205,11 @@ class Interpreter:
             self.move_out_of_block()               
         else:
             error_handler.handle_error("The step wasn't 0 or 1. That should never happen. This must be a bug in my code. Sorry")
+        if not self.finished:
+            debug.writeln()
+            debug.writeln("AT (%s,%s), COLOR=%s, DP=%d, CC=%s"\
+                % (self.current_pixel.x,self.current_pixel.y,self.current_pixel.color,\
+                self.dp, self.cc))
             
     def move_within_block(self):
         """Moves to the border pixel within the current color block."""
