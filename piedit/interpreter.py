@@ -24,7 +24,7 @@ __status__ = "Production"
 
 class Interpreter:
     """The Piet interpreter class"""
-    def __init__(self, max_steps=1000000):
+    def __init__(self, max_steps=1000000, thread=None):
         """Initalizes new Interpreter."""
         self.current_pixel = None
         self.dp = 0
@@ -37,6 +37,7 @@ class Interpreter:
         self.stack = []
         self.color_blocks = {}
         self.finished = False
+        self.thread = thread
         #Indexed by hue and light change
         self.operations = {
             (1,0):("Add",self.op_add),
@@ -96,15 +97,15 @@ class Interpreter:
         
         (self.width, self.height) = self.image.size
         rawpixels = self.image.getdata()
-        self.pixels = [[Pixel(x,y,colors.rgb_to_hex(rawpixels[y*(self.width)+x])) for y in range(self.height)] for x in range(self.width)]
+        self.pixels = [[Pixel(x,y,colors.rgb_to_hex(rawpixels[y*(self.width)+x])) for y in xrange(self.height)] for x in xrange(self.width)]
         self.current_pixel = self.pixels[0][0]
         
     def find_color_blocks(self):
         """Uses the connected component algorithm to build the program color blocks."""
         next_label = 0
         #Pass 1
-        for y in range(self.height):
-            for x in range(self.width):
+        for y in xrange(self.height):
+            for x in xrange(self.width):
                 pixel = self.pixels[x][y]
                 if not self.is_background(pixel.color):
                     neighbours = self.neighbours(pixel)
@@ -118,8 +119,8 @@ class Interpreter:
                             unionfind.union(n,pixel)
         
         #Pass 2
-        for y in range(self.height):
-            for x in range(self.width):
+        for y in xrange(self.height):
+            for x in xrange(self.width):
                 pixel = self.pixels[x][y]
                 if not self.is_background(pixel.color):
                     root = unionfind.find(pixel)
@@ -172,7 +173,7 @@ class Interpreter:
             while not self.finished:
                 self.do_next_step()
         else:
-            for i in range(self.max_steps):
+            for i in xrange(self.max_steps):
                 self.do_next_step()
                 if self.finished:
                     return
@@ -194,6 +195,12 @@ class Interpreter:
             
     def do_next_step(self,step=None):     
         """Executes a step in the program."""
+        if self.thread != None:
+            if self.thread.should_stop:
+                debug.writeln()
+                debug.writeln("---EXECUTION FINISHED (Thread was stopped)---")
+                self.finished = True
+                return
         self.current_step = self.current_step + 1
         if self.step == 0:
             debug.writeln("  -> Moving within color block...")
@@ -561,20 +568,23 @@ def getopts():
 
 #Run the program if on command line
 if __name__ == "__main__":
-    error_handler = ErrorHandler(False)
-    interpreter = Interpreter()
-    if len(sys.argv)>1:
+    try:
+        error_handler = ErrorHandler(False)
+        interpreter = Interpreter()
+        if len(sys.argv)>1:
         
-        opts,args = getopts()
-        for o,a in opts:
-            if o in ["-h","--help"]:
+            opts,args = getopts()
+            for o,a in opts:
+                if o in ["-h","--help"]:
+                    print_usage()
+                    sys.exit(1)
+                else:
+                    interpreter.set_opt(o,a)
+            if len(args) != 1:
                 print_usage()
-                sys.exit(1)
-            else:
-                interpreter.set_opt(o,a)
-        if len(args) != 1:
+                sys.exit(2)
+            interpreter.run_program(args[0])
+        else:
             print_usage()
-            sys.exit(2)
-        interpreter.run_program(args[0])
-    else:
-        print_usage()
+    except KeyboardInterrupt:
+        print "\n\nTerminated"
