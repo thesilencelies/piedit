@@ -406,7 +406,7 @@ class Interpreter:
             num_rolls = self.stack.pop()
             depth = self.stack.pop()    
             if depth >0:
-                for i in range(abs(num_rolls)):
+                for i in xrange(abs(num_rolls)):
                     self.roll(depth,num_rolls<0)    
     
     def roll(self,depth,reverse):
@@ -417,13 +417,13 @@ class Interpreter:
         if reverse:
             bottom_item = self.stack[0]
             index = depth
-            for i in range(index):
+            for i in xrange(index):
                 self.stack[i] = self.stack[i+1]
             self.stack[index] = bottom_item
         else:
             top_item = self.stack[-1]
             index = len(self.stack)-depth
-            for i in range(len(self.stack)-1,index,-1):
+            for i in xrange(len(self.stack)-1,index,-1):
                 self.stack[i] = self.stack[i-1]    
             self.stack[index] = top_item
     
@@ -456,7 +456,7 @@ class Interpreter:
         """Piet Switch operation."""
         if len(self.stack) >=1:
             item = self.stack.pop()
-            for i in range(item):
+            for i in xrange(item):
                 self.toggle_cc()
     
     def op_in_number(self):
@@ -481,7 +481,7 @@ class ColorBlock:
         """Initializes new ColorBlock."""
         self.size = size
         #boundary_pixels = [[DPR_CCL,DPR_CCR],[DPD_CCL,DPD,CCR] ... etc.
-        self.boundary_pixels = [[None,None] for i in range(4)]
+        self.boundary_pixels = [[None,None] for i in xrange(4)]
         
     def update_boundaries(self,pixel):
         """Updates the boundary pixels of the current color block given a new pixel."""

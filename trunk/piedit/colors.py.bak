@@ -50,6 +50,7 @@ def all_colors():
         yield color
         
 def rgb_to_hex(rgb):
+    #print rgb
     """Converts an rgb tuple to a hex string"""
     if len(rgb) <3:
         return rgb
