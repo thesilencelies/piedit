@@ -38,6 +38,7 @@ class Interpreter:
         self.color_blocks = {}
         self.finished = False
         self.thread = thread
+        self.debug = debug.Debug(False)
         #Indexed by hue and light change
         self.operations = {
             (1,0):("Add",self.op_add),
@@ -65,20 +66,20 @@ class Interpreter:
     def set_opt(self,o,a):
         """Sets an option from the command line."""
         if o in ["-d", "--debug"]:
-            debug.DEBUG = True
+            self.debug.DEBUG = True
         elif o in ["-m","--maxsteps"]:
             self.max_steps = int(a)
     
     def run_program(self,path,start=True):
         """Runs a program at the given path."""
-        debug.writeln("---LOADING IMAGE %s...---" % (path))
+        self.debug.writeln("---LOADING IMAGE %s...---" % (path))
         self.load_image(path)   
-        debug.writeln("---IMAGE LOADED---\n")
-        debug.writeln("---SCANNING COLOR BLOCKS---")
+        self.debug.writeln("---IMAGE LOADED---\n")
+        self.debug.writeln("---SCANNING COLOR BLOCKS---")
         self.find_color_blocks()
-        debug.writeln("---COLOR BLOCKS SCANNED---\n")
-        debug.writeln("---STARTING EXECUTION---")
-        debug.writeln("AT (%s,%s), COLOR=%s, DP=%d, CC=%s"\
+        self.debug.writeln("---COLOR BLOCKS SCANNED---\n")
+        self.debug.writeln("---STARTING EXECUTION---")
+        self.debug.writeln("AT (%s,%s), COLOR=%s, DP=%d, CC=%s"\
             % (self.current_pixel.x,self.current_pixel.y,self.current_pixel.color,\
             self.dp, self.cc))
         if start:
@@ -134,7 +135,7 @@ class Interpreter:
         #Debug
         for i,color_block in self.color_blocks.items():
             bounds = color_block.boundary_pixels
-            debug.writeln("Color Block %s: Size=%s, \n\tmaxRL=(%s,%s), maxRR=(%s,%s), \n\tmaxDL=(%s,%s), maxDR=(%s,%s), \n\tmaxLL=(%s,%s), maxLR=(%s,%s), \n\tmaxUL=(%s,%s), maxUR=(%s,%s)" \
+            self.debug.writeln("Color Block %s: Size=%s, \n\tmaxRL=(%s,%s), maxRR=(%s,%s), \n\tmaxDL=(%s,%s), maxDR=(%s,%s), \n\tmaxLL=(%s,%s), maxLR=(%s,%s), \n\tmaxUL=(%s,%s), maxUR=(%s,%s)" \
                 % (i, color_block.size, 
                    bounds[0][0].x,bounds[0][0].y, bounds[0][1].x, bounds[0][1].y,
                    bounds[1][0].x,bounds[1][0].y, bounds[1][1].x, bounds[1][1].y,
@@ -177,7 +178,7 @@ class Interpreter:
                 self.do_next_step()
                 if self.finished:
                     return
-            debug.writeln("---EXECUTION FINISHED (Max Steps Reached)---")
+            self.debug.writeln("---EXECUTION FINISHED (Max Steps Reached)---")
             
     def do_next_debug_step(self):
         if self.max_steps == -1:
@@ -187,7 +188,7 @@ class Interpreter:
                 self.do_next_step()
             else:
                 return False
-                debug.writeln("---EXECUTION FINISHED (Max Steps Reached)---")
+                self.debug.writeln("---EXECUTION FINISHED (Max Steps Reached)---")
         if self.finished:
             return False
         else:
@@ -197,24 +198,24 @@ class Interpreter:
         """Executes a step in the program."""
         if self.thread != None:
             if self.thread.should_stop:
-                debug.writeln()
-                debug.writeln("---EXECUTION FINISHED (Thread was stopped)---")
+                self.debug.writeln()
+                self.debug.writeln("---EXECUTION FINISHED (Thread was stopped)---")
                 self.finished = True
                 return
         self.current_step = self.current_step + 1
         if self.step == 0:
-            debug.writeln("  -> Moving within color block...")
+            self.debug.writeln("  -> Moving within color block...")
             self.step = 1
             self.move_within_block()         
         elif self.step == 1:
-            debug.writeln("  -> Moving out of color block...")
+            self.debug.writeln("  -> Moving out of color block...")
             self.step = 0           
             self.move_out_of_block()               
         else:
             error_handler.handle_error("The step wasn't 0 or 1. That should never happen. This must be a bug in my code. Sorry")
         if not self.finished:
-            debug.writeln()
-            debug.writeln("AT (%s,%s), COLOR=%s, DP=%d, CC=%s"\
+            self.debug.writeln()
+            self.debug.writeln("AT (%s,%s), COLOR=%s, DP=%d, CC=%s"\
                 % (self.current_pixel.x,self.current_pixel.y,self.current_pixel.color,\
                 self.dp, self.cc))
             
@@ -260,7 +261,7 @@ class Interpreter:
         x,y = self.current_pixel.x, self.current_pixel.y
         n_x,n_y = self.next_pixel_coords()
         
-        debug.writeln("  -> Trying to cross from (%s,%s) to (%s,%s)"\
+        self.debug.writeln("  -> Trying to cross from (%s,%s) to (%s,%s)"\
             %(x,y,n_x,n_y))
         
         #If we're at a wall
@@ -285,13 +286,13 @@ class Interpreter:
             #Get the operation to do
             hue_light_diff = colors.hue_light_diff(current_pixel.color,next_pixel.color)
             op_name, op = self.operations[hue_light_diff]
-            debug.writeln("  -> Crossing from (%s,%s), color=%s to (%s,%s), color=%s"\
+            self.debug.writeln("  -> Crossing from (%s,%s), color=%s to (%s,%s), color=%s"\
                 % (current_pixel.x, current_pixel.y, current_pixel.color,\
                 next_pixel.x, next_pixel.y, next_pixel.color))
-            debug.writeln("  -> Stack before %s = %s" % (op_name.upper(),self.stack))
-            debug.writeln("  -> Performing %s" % (op_name.upper()))
+            self.debug.writeln("  -> Stack before %s = %s" % (op_name.upper(),self.stack))
+            self.debug.writeln("  -> Performing %s" % (op_name.upper()))
             op()
-            debug.writeln("  -> Stack after %s = %s" % (op_name.upper(),self.stack))
+            self.debug.writeln("  -> Stack after %s = %s" % (op_name.upper(),self.stack))
         self.current_pixel = next_pixel
         self.times_stopped = 0
         self.switch_cc = True
@@ -312,9 +313,9 @@ class Interpreter:
     
     def hit_obstruction(self):
         """Handles the case when an obstruction is the next pixel."""
-        debug.writeln("  -> Hit an obstruction")
+        self.debug.writeln("  -> Hit an obstruction")
         self.times_stopped = self.times_stopped + 1
-        debug.writeln("  -> Obstructions Hit = %i" % (self.times_stopped))
+        self.debug.writeln("  -> Obstructions Hit = %i" % (self.times_stopped))
         self.step = 0
         if (self.times_stopped >= 8):
             self.stop_execution()
@@ -328,18 +329,18 @@ class Interpreter:
     
     def stop_execution(self):
         """Cancels execution of the program."""
-        debug.writeln("---EXECUTION FINISHED---")
+        self.debug.writeln("---EXECUTION FINISHED---")
         self.finished = True
         
     def toggle_cc(self):
         """Toggles the cc."""
-        debug.writeln("  -> Toggling CC")
+        self.debug.writeln("  -> Toggling CC")
         div,mod = divmod(1-self.cc,1)
         self.cc = div
     
     def rotate_dp(self,times=1):
         """Rotates the dp by the given number of times."""
-        debug.writeln("  -> Rotating DP by %s" % times)
+        self.debug.writeln("  -> Rotating DP by %s" % times)
         div,mod = divmod(self.dp+times,4)
         self.dp = mod
         

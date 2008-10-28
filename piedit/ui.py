@@ -25,9 +25,10 @@ __status__ = "Production"
 
 
 class InterpreterThread(threading.Thread):
-    def __init__(self,filename,callback):
+    def __init__(self,filename,callback,debug=False):
         self.should_stop = False
         self.interpreter = piedit.interpreter.Interpreter(thread=self)
+        self.interpreter.debug.DEBUG = debug
         self.filename = filename
         self.callback = callback
         threading.Thread.__init__(self)
@@ -138,16 +139,15 @@ class Handlers:
     def on_runRunMenuItem_activate(self,*args):
         """Handler for Run|Run menu item"""
         self.set_run_menu(running=True,status="Running...")
-        piedit.debug.DEBUG = False
-        self.interpreter_thread = InterpreterThread(self._ui.current_file,self.thread_end_callback)
+        self.interpreter_thread = InterpreterThread(self._ui.current_file,self.thread_end_callback,debug=False)
         self.interpreter_thread.start()
     
     def on_runDebugMenuItem_activate(self,*args):
         """Handler for Run|Debug menu item"""
         self.set_run_menu(running=True,status="Debugging...",debug=True)
-        piedit.debug.DEBUG = True
-        interpreter = piedit.interpreter.Interpreter()
-        interpreter.run_program(self._ui.current_file,start=False)
+        self._ui.interpreter = piedit.interpreter.Interpreter()
+        self._ui.interpreter.debug.DEBUG = True
+        self._ui.interpreter.run_program(self._ui.current_file,start=False)
     
     def on_runStepMenuItem_activate(self,*args):
         if self._ui.interpreter.do_next_debug_step():
@@ -156,7 +156,10 @@ class Handlers:
             self.set_run_menu(running=False,status="Complete")
 
     def on_runStopMenuItem_activate(self,*args):
-        self.interpreter_thread.stop()    
+        if self._ui.interpreter.debug.DEBUG:
+            self.thread_end_callback(True)
+        else:
+            self.interpreter_thread.stop()
         
     def set_run_menu(self,running,status,debug=False):
         if running:
