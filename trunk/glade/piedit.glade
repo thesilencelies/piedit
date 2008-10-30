@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.5 on Mon Oct 27 22:58:16 2008 -->
+<!--Generated with glade3 3.4.5 on Thu Oct 30 23:16:40 2008 -->
 <glade-interface>
   <requires lib="bonobo"/>
   <requires lib="gnome"/>
@@ -79,61 +79,6 @@
                         </child>
                       </widget>
                     </child>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkMenuItem" id="editMenuItem">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">_Edit</property>
-                    <property name="use_underline">True</property>
-                    <child>
-                      <widget class="GtkMenu" id="editMenu">
-                        <property name="visible">True</property>
-                        <child>
-                          <widget class="GtkImageMenuItem" id="editCutMenuItem">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes">gtk-cut</property>
-                            <property name="use_underline">True</property>
-                            <property name="use_stock">True</property>
-                            <signal name="activate" handler="on_editCutMenuItem_activate"/>
-                          </widget>
-                        </child>
-                        <child>
-                          <widget class="GtkImageMenuItem" id="editCopyMenuItem">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes">gtk-copy</property>
-                            <property name="use_underline">True</property>
-                            <property name="use_stock">True</property>
-                            <signal name="activate" handler="on_editCopyMenuItem_activate"/>
-                          </widget>
-                        </child>
-                        <child>
-                          <widget class="GtkImageMenuItem" id="editPasteMenuItem">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes">gtk-paste</property>
-                            <property name="use_underline">True</property>
-                            <property name="use_stock">True</property>
-                            <signal name="activate" handler="on_editPasteMenuItem_activate"/>
-                          </widget>
-                        </child>
-                        <child>
-                          <widget class="GtkImageMenuItem" id="editDeleteMenuItem">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes">gtk-delete</property>
-                            <property name="use_underline">True</property>
-                            <property name="use_stock">True</property>
-                            <signal name="activate" handler="on_editDeleteMenuItem_activate"/>
-                          </widget>
-                        </child>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkMenuItem" id="viewMenuItem">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">_View</property>
-                    <property name="use_underline">True</property>
                   </widget>
                 </child>
                 <child>
@@ -225,6 +170,19 @@
                       <widget class="GtkMenu" id="helpMenu">
                         <property name="visible">True</property>
                         <child>
+                          <widget class="GtkImageMenuItem" id="helpHelpMenuItem">
+                            <property name="visible">True</property>
+                            <property name="label" translatable="yes">gtk-help</property>
+                            <property name="use_underline">True</property>
+                            <property name="use_stock">True</property>
+                          </widget>
+                        </child>
+                        <child>
+                          <widget class="GtkSeparatorMenuItem" id="separatormenuitem4">
+                            <property name="visible">True</property>
+                          </widget>
+                        </child>
+                        <child>
                           <widget class="GtkImageMenuItem" id="helpAboutMenuItem">
                             <property name="visible">True</property>
                             <property name="label" translatable="yes">gtk-about</property>
@@ -247,6 +205,124 @@
         <child>
           <widget class="GtkVBox" id="vbox1">
             <property name="visible">True</property>
+            <child>
+              <widget class="GtkToolbar" id="toolbar1">
+                <property name="visible">True</property>
+                <property name="icon_size_set">True</property>
+                <child>
+                  <widget class="GtkToolButton" id="toolbarNew">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">New</property>
+                    <property name="stock_id">gtk-new</property>
+                    <signal name="clicked" handler="on_toolbarNew_clicked"/>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkToolButton" id="toolbarOpen">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Open</property>
+                    <property name="stock_id">gtk-open</property>
+                    <signal name="clicked" handler="on_toolbarOpen_clicked"/>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkToolButton" id="toolbarSave">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Save</property>
+                    <property name="stock_id">gtk-save</property>
+                    <signal name="clicked" handler="on_toolbarSave_clicked"/>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkSeparatorToolItem" id="toolbutton1">
+                    <property name="visible">True</property>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkToolButton" id="toolbarRun">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Run</property>
+                    <property name="stock_id">gtk-media-play</property>
+                    <signal name="clicked" handler="on_toolbarRun_clicked"/>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkToolButton" id="toolbarDebug">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Debug</property>
+                    <property name="stock_id">gtk-media-forward</property>
+                    <signal name="clicked" handler="on_toolbarDebug_clicked"/>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkToolButton" id="toolbarStep">
+                    <property name="visible">True</property>
+                    <property name="sensitive">False</property>
+                    <property name="label" translatable="yes">Step</property>
+                    <property name="stock_id">gtk-media-forward</property>
+                    <signal name="clicked" handler="on_toolbarStep_clicked"/>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkToolButton" id="toolbarStop">
+                    <property name="visible">True</property>
+                    <property name="sensitive">False</property>
+                    <property name="label" translatable="yes">Stop</property>
+                    <property name="stock_id">gtk-cancel</property>
+                    <signal name="clicked" handler="on_toolbarStop_clicked"/>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkSeparatorToolItem" id="toolbutton2">
+                    <property name="visible">True</property>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkToolButton" id="toolbarHelp">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Help</property>
+                    <property name="stock_id">gtk-help</property>
+                    <signal name="clicked" handler="on_toolbarHelp_clicked"/>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                  </packing>
+                </child>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
+            </child>
             <child>
               <widget class="GtkFrame" id="frame1">
                 <property name="visible">True</property>
@@ -364,6 +440,7 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -376,10 +453,88 @@
                     <property name="visible">True</property>
                     <property name="left_padding">12</property>
                     <child>
-                      <widget class="GtkDrawingArea" id="programTable">
+                      <widget class="GtkTable" id="table1">
                         <property name="visible">True</property>
-                        <signal name="expose_event" handler="on_programTable_expose_event"/>
-                        <signal name="realize" handler="on_programTable_realize"/>
+                        <property name="n_rows">3</property>
+                        <property name="n_columns">3</property>
+                        <child>
+                          <widget class="GtkButton" id="decreaseWidthButton">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="label" translatable="yes">&lt;</property>
+                            <property name="response_id">0</property>
+                            <signal name="clicked" handler="on_decreaseWidthButton_clicked"/>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">3</property>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
+                            <property name="x_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkButton" id="increaseWidthButton">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="label" translatable="yes">&gt;</property>
+                            <property name="response_id">0</property>
+                            <signal name="clicked" handler="on_increaseWidthButton_clicked"/>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">3</property>
+                            <property name="x_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkButton" id="decreaseHeightButton">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="label" translatable="yes">/\</property>
+                            <property name="response_id">-1</property>
+                            <signal name="clicked" handler="on_decreaseHeightButton_clicked"/>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">2</property>
+                            <property name="bottom_attach">3</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkButton" id="increaseHeightButton">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="label" translatable="yes">\/</property>
+                            <property name="response_id">0</property>
+                            <signal name="clicked" handler="on_increaseHeightButton_clicked"/>
+                          </widget>
+                          <packing>
+                            <property name="top_attach">2</property>
+                            <property name="bottom_attach">3</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <widget class="GtkDrawingArea" id="programTable">
+                            <property name="visible">True</property>
+                            <signal name="expose_event" handler="on_programTable_expose_event"/>
+                            <signal name="realize" handler="on_programTable_realize"/>
+                          </widget>
+                          <packing>
+                            <property name="right_attach">2</property>
+                            <property name="bottom_attach">2</property>
+                          </packing>
+                        </child>
                       </widget>
                     </child>
                   </widget>
@@ -396,7 +551,7 @@
                 </child>
               </widget>
               <packing>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </widget>

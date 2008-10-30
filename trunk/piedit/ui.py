@@ -63,7 +63,7 @@ class Handlers:
     def on_fileNewMenuItem_activate(self, *args):
         """Handler for File|New menu item"""
         if self._ui.save_changes():
-            self._ui.clear_image()
+            self._ui.clear_image(self._ui.default_width,self._ui.default_height)
 
     def on_fileOpenMenuItem_activate(self, *args):
         """Handler for File|Open menu item"""
@@ -111,31 +111,8 @@ class Handlers:
         """Handler for File|Quit menu item"""
         if self._ui.save_changes():
             gtk.main_quit()
-
-    #Edit Menu
-    def on_editCutMenuItem_activate(self,*args):
-        """Handler for Edit|Cut menu item"""
-        print "Edit Cut"
-    def on_editCopyMenuItem_activate(self,*args):
-        """Handler for Edit|Copy menu item"""
-        print "Edit Copy"
-    def on_editPasteMenuItem_activate(self, *args):
-        """Handler for Edit|Paste menu item"""
-        print "Edit Paste"
-    def on_editDeleteMenuItem_activate(self, *args):
-        """Handler for Edit|Delete menu item"""
-        print "Edit Delete"
-  
-    #View Menu
-    #No handlers here yet
     
-    #Run Menu           
-    def thread_end_callback(self,was_cancelled):
-        if was_cancelled:
-            self.set_run_menu(running=False,status="Cancelled")
-        else:
-            self.set_run_menu(running=False,status="Complete")
-        
+    #Run Menu                  
     def on_runRunMenuItem_activate(self,*args):
         """Handler for Run|Run menu item"""
         self.set_run_menu(running=True,status="Running...")
@@ -167,18 +144,64 @@ class Handlers:
             self._ui.gladeui.get_widget("runDebugMenuItem").set_sensitive(False)
             self._ui.gladeui.get_widget("runStopMenuItem").set_sensitive(True)
             self._ui.gladeui.get_widget("runStepMenuItem").set_sensitive(debug)
+            
+            self._ui.gladeui.get_widget("toolbarRun").set_sensitive(False)
+            self._ui.gladeui.get_widget("toolbarDebug").set_sensitive(False)
+            self._ui.gladeui.get_widget("toolbarStop").set_sensitive(True)
+            self._ui.gladeui.get_widget("toolbarStep").set_sensitive(debug)
         else:
             self._ui.gladeui.get_widget("runStopMenuItem").set_sensitive(False)
             self._ui.gladeui.get_widget("runStepMenuItem").set_sensitive(False)
             self._ui.gladeui.get_widget("runRunMenuItem").set_sensitive(True)
             self._ui.gladeui.get_widget("runDebugMenuItem").set_sensitive(True)
+       
+            self._ui.gladeui.get_widget("toolbarStop").set_sensitive(False)
+            self._ui.gladeui.get_widget("toolbarStep").set_sensitive(False)
+            self._ui.gladeui.get_widget("toolbarRun").set_sensitive(True)
+            self._ui.gladeui.get_widget("toolbarDebug").set_sensitive(True)
+            
         self._ui.gladeui.get_widget("statusBar").set_status(status)
+    
+    def thread_end_callback(self,was_cancelled):
+        """Function to be called when the thread stops executing."""
+        if was_cancelled:
+            self.set_run_menu(running=False,status="Cancelled")
+        else:
+            self.set_run_menu(running=False,status="Complete")
     #Help Menu
+    def on_helpHelpMenuItem_activate(self,*args):
+        print "Help | Help"
+        
     def on_helpAboutMenuItem_activate(self,*args):
         """Handler for Help|About menu item"""
         print "Help About"
+        
+    #Toolbar
+    def on_toolbarNew_clicked(self,*args):
+        return self.on_fileNewMenuItem_activate(*args)
+    
+    def on_toolbarOpen_clicked(self,*args):
+        return self.on_fileOpenMenuItem_activate(*args)
+    
+    def on_toolbarSave_clicked(self,*args):
+        return self.on_fileSaveMenuItem_activate(*args)
+    
+    def on_toolbarRun_clicked(self,*args):
+        return self.on_runRunMenuItem_activate(*args)
+    
+    def on_toolbarDebug_clicked(self,*args):
+        return self.on_runDebugMenuItem_activate(*args)
+    
+    def on_toolbarStep_clicked(self,*args):
+        return self.on_runStepMenuItem_activate(*args)
+    
+    def on_toolbarStop_clicked(self,*args):
+        return self.on_runStopMenuItem_activate(*args)
+    
+    def on_toolbarHelp_clicked(self,*args):
+        return self.on_helpHelpMenuItem_activate(*args)
 
-    #Non-menu hadlers
+    #Other handlers
     def on_programTable_button_press_event(self, widget, event):
         self._ui.set_pixel_color(int(event.x),int(event.y))
 
@@ -188,7 +211,19 @@ class Handlers:
 
     def on_programTable_expose_event(self, widget, event):
         #Add event boxes to program table
-        self._ui.initialise_program_table()              
+        self._ui.initialise_program_table()           
+        
+    def on_increaseWidthButton_clicked(self,*args):
+        self._ui.increase_width()
+    
+    def on_decreaseWidthButton_clicked(self,*args):
+        self._ui.decrease_width()
+    
+    def on_increaseHeightButton_clicked(self,*args):
+        self._ui.increase_height()
+        
+    def on_decreaseHeightButton_clicked(self,*args):
+        self._ui.decrease_height()
              
       
 class UI:
@@ -237,20 +272,23 @@ class UI:
         if self.width>self.max_width or self.height>self.max_height:
             self.message_handler.handle_error("IMAGE_TOO_BIG")
         else:
-            self.clear_image()
+            self.clear_image(self.width,self.height)
             self.pixels = list(image.getdata())
             self.initialise_program_table()
         self.set_current_file(path)
         self.set_changes_made(False)
         self.set_window_title(os.path.basename(path))
 
-    def clear_image(self):
-        """Clears the program table, i.e. fills with all whites"""        
+    def clear_image(self,width,height):
+        """Clears the program table, i.e. fills with all whites"""      
+        self.height=height
+        self.width=width
         self.gladeui.get_widget("programTable").window.clear()
         self.pixels = [piedit.colors.hex_to_rgb(piedit.colors.white) for y in xrange(self.height) for x in xrange(self.width)]
         self.set_current_file(None)
-        self.set_window_title("Untitled.bmp")
-        self.set_changes_made(True)
+        self.set_window_title("Untitled.png")
+        self.set_changes_made(False)
+        self.initialise_program_table()
         
     def set_pixel_color(self,x,y):
         """Sets the color of a program table pixel to the currently selected color"""
@@ -352,10 +390,11 @@ class UI:
         program_table = self.gladeui.get_widget("programTable")
         program_table.add_events(gtk.gdk.BUTTON_PRESS_MASK)
         program_table.connect("button_press_event", self.handlers.on_programTable_button_press_event)
-        self.clear_image()
+        self.clear_image(self.width,self.height)
         
     def initialise_program_table(self):
         program_table = self.gladeui.get_widget("programTable").window
+        program_table.clear()
         pt_width, pt_height = program_table.get_size()
         width_per_pixel = pt_width/self.width
         height_per_pixel = pt_height/self.height
@@ -379,6 +418,30 @@ class UI:
                 except AttributeError:
                     gc.set_foreground(white)
                 program_table.draw_rectangle(gc,True,x*width_per_pixel+1,y*height_per_pixel+1,width_per_pixel-1,height_per_pixel-1)    
+    
+    def increase_width(self):
+        for i,y in enumerate(xrange(self.height)):
+            self.pixels.insert((y*self.width+i)+self.width,piedit.colors.hex_to_rgb(piedit.colors.white))
+        self.width = self.width+1
+        self.initialise_program_table()
+    
+    def decrease_width(self):
+        if self.width > 1:
+            for i,y in enumerate(xrange(self.height)):
+                del self.pixels[(y*self.width)+self.width-1-i]
+            self.width = self.width-1
+            self.initialise_program_table()
+
+    def increase_height(self):
+        self.pixels.extend([piedit.colors.hex_to_rgb(piedit.colors.white) for x in xrange(self.width)])
+        self.height = self.height+1
+        self.initialise_program_table()
+    
+    def decrease_height(self):
+        if self.height > 1:
+            self.pixels[self.width*self.height-self.width:] = []
+            self.height = self.height-1
+            self.initialise_program_table()
 
     
 class MessageHandler:
