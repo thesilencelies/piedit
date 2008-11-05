@@ -70,10 +70,16 @@ class Interpreter:
         elif o in ["-m","--maxsteps"]:
             self.max_steps = int(a)
     
-    def run_program(self,path,start=True):
+    def run_program(self,path=None,pixels=None,width=None,height=None,start=True):
         """Runs a program at the given path."""
         self.debug.writeln("---LOADING IMAGE %s...---" % (path))
-        self.load_image(path)   
+        if pixels != None:
+            self.width = width
+            self.height = height
+            self.pixels = [[Pixel(x,y,pixels[y*(self.width)+x]) for y in xrange(self.height)] for x in xrange(self.width)]
+            self.current_pixel = self.pixels[0][0]
+        else:
+            self.load_image(path)   
         self.debug.writeln("---IMAGE LOADED---\n")
         self.debug.writeln("---SCANNING COLOR BLOCKS---")
         self.find_color_blocks()

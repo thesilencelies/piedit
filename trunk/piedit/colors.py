@@ -68,9 +68,12 @@ def is_white(hex):
             return False
         except KeyError:
             return True
-    
+
 def is_black(hex):
-    return hex == black
+    if hex == black:
+        return True
+    else:
+        return False
 
 def hue_light_diff(from_color,to_color):
     """Gets the difference in hue and light between two colors.

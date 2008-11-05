@@ -25,16 +25,18 @@ __status__ = "Production"
 
 
 class InterpreterThread(threading.Thread):
-    def __init__(self,filename,callback,debug=False):
+    def __init__(self,pixels,width,height,callback=None,debug=False):
         self.should_stop = False
         self.interpreter = piedit.interpreter.Interpreter(thread=self)
         self.interpreter.debug.DEBUG = debug
-        self.filename = filename
+        self.pixels = pixels
+        self.width = width
+        self.height = height
         self.callback = callback
         threading.Thread.__init__(self)
         
     def run(self):
-        self.interpreter.run_program(self.filename)
+        self.interpreter.run_program(pixels=self.pixels,width=self.width,height=self.height)
         self.callback(self.should_stop)
         
     def stop(self):
@@ -64,6 +66,7 @@ class Handlers:
         """Handler for File|New menu item"""
         if self._ui.save_changes():
             self._ui.clear_image(self._ui.default_width,self._ui.default_height)
+            self._ui.draw_program_table()
 
     def on_fileOpenMenuItem_activate(self, *args):
         """Handler for File|Open menu item"""
@@ -115,28 +118,31 @@ class Handlers:
     #Run Menu                  
     def on_runRunMenuItem_activate(self,*args):
         """Handler for Run|Run menu item"""
+        self.run_mode = "Run"
         self.set_run_menu(running=True,status="Running...")
-        self.interpreter_thread = InterpreterThread(self._ui.current_file,self.thread_end_callback,debug=False)
+        self.interpreter_thread = InterpreterThread(pixels=self._ui.pixels,width=self._ui.width,height=self._ui.height,callback=self.thread_end_callback,debug=False)
         self.interpreter_thread.start()
     
     def on_runDebugMenuItem_activate(self,*args):
         """Handler for Run|Debug menu item"""
+        self.run_mode = "Debug"
         self.set_run_menu(running=True,status="Debugging...",debug=True)
         self._ui.interpreter = piedit.interpreter.Interpreter()
         self._ui.interpreter.debug.DEBUG = True
-        self._ui.interpreter.run_program(self._ui.current_file,start=False)
+        self._ui.interpreter.run_program(pixels=self._ui.pixels,width=self._ui.width,height=self._ui.height,start=False)
+        self._ui.highlight_pixel(0,0)
     
     def on_runStepMenuItem_activate(self,*args):
         if self._ui.interpreter.do_next_debug_step():
-            pass
+            self._ui.highlight_pixel(self._ui.interpreter.current_pixel.x,self._ui.interpreter.current_pixel.y)
         else:
             self.set_run_menu(running=False,status="Complete")
 
     def on_runStopMenuItem_activate(self,*args):
-        if self._ui.interpreter.debug.DEBUG:
-            self.thread_end_callback(True)
-        else:
+        if self.run_mode == "Run":
             self.interpreter_thread.stop()
+        elif self.run_mode == "Debug":
+            self.thread_end_callback(self._ui.interpreter.debug.DEBUG)
         
     def set_run_menu(self,running,status,debug=False):
         if running:
@@ -211,7 +217,7 @@ class Handlers:
 
     def on_programTable_expose_event(self, widget, event):
         #Add event boxes to program table
-        self._ui.initialise_program_table()           
+        self._ui.draw_program_table()           
         
     def on_increaseWidthButton_clicked(self,*args):
         self._ui.increase_width()
@@ -243,6 +249,7 @@ class UI:
         self.height = self.default_height
         self.max_width = 1000
         self.max_height = 1000
+        self.current_pixel = None
         
         self.handlers = Handlers(self)
         self.gladeui.signal_autoconnect(self.handlers)
@@ -252,7 +259,7 @@ class UI:
     def save_image(self,path):
         """Saves the current program table to an image"""
         image = PIL.Image.new("RGB",(self.width,self.height))
-        image.putdata(self.pixels)
+        image.putdata([piedit.colors.hex_to_rgb(p) for p in self.pixels])
         image.save(path, "PNG")
         self.message_handler.handle_message("FILE_SAVED")
         self.set_current_file(path)
@@ -267,14 +274,13 @@ class UI:
                 image = image.convert("RGB")
         except IOError:
             self.message_handler.handle_error("FILE_NOT_LOADED")
-            return
         (self.width, self.height) = image.size
         if self.width>self.max_width or self.height>self.max_height:
             self.message_handler.handle_error("IMAGE_TOO_BIG")
         else:
             self.clear_image(self.width,self.height)
-            self.pixels = list(image.getdata())
-            self.initialise_program_table()
+            self.pixels = [piedit.colors.rgb_to_hex(rgb) for rgb in image.getdata()]
+            self.draw_program_table()
         self.set_current_file(path)
         self.set_changes_made(False)
         self.set_window_title(os.path.basename(path))
@@ -284,11 +290,11 @@ class UI:
         self.height=height
         self.width=width
         self.gladeui.get_widget("programTable").window.clear()
-        self.pixels = [piedit.colors.hex_to_rgb(piedit.colors.white) for y in xrange(self.height) for x in xrange(self.width)]
+        self.pixels = [piedit.colors.white for y in xrange(self.height) for x in xrange(self.width)]
+        self.current_pixel=None
         self.set_current_file(None)
         self.set_window_title("Untitled.png")
         self.set_changes_made(False)
-        self.initialise_program_table()
         
     def set_pixel_color(self,x,y):
         """Sets the color of a program table pixel to the currently selected color"""
@@ -296,14 +302,41 @@ class UI:
         pt_width, pt_height = program_table.get_size()
         width_per_pixel = pt_width/self.width
         height_per_pixel = pt_height/self.height
+        extra_width_cutoff = self.width-(pt_width%(width_per_pixel*self.width))
+        extra_height_cutoff = self.height-(pt_height%(height_per_pixel*self.height))
         
-        x = x // width_per_pixel
-        y = y // height_per_pixel
+        x_sum = 0
+        x_counter = 0
+        while x_sum<x:
+            if x_counter<extra_width_cutoff:
+                new_x_sum = x_sum + width_per_pixel
+            else:
+                new_x_sum = x_sum + width_per_pixel + 1
+            if new_x_sum<x:
+                x_sum = new_x_sum
+                x_counter = x_counter +1
+            else:
+                x_sum = x
+        x = x_counter
+                
+        y_sum = 0
+        y_counter = 0
+        while y_sum<y:
+            if y_counter<extra_height_cutoff:
+                new_y_sum = y_sum + height_per_pixel
+            else:
+                new_y_sum = y_sum + height_per_pixel + 1
+            if new_y_sum<y:
+                y_sum = new_y_sum
+                y_counter = y_counter +1
+            else:
+                y_sum = y
+        y = y_counter        
         
         if self.selected_color:
-            self.pixels[y*self.width+x] = piedit.colors.hex_to_rgb(self.selected_color)
+            self.pixels[y*self.width+x] = self.selected_color
             self.set_changes_made(True)
-            self.initialise_program_table()
+            self.draw_program_table([x],[y])
 
     def set_selected_color(self,color_widget):
         """Sets the currently selected color. Called when the codel color chooser is clicked"""
@@ -392,12 +425,19 @@ class UI:
         program_table.connect("button_press_event", self.handlers.on_programTable_button_press_event)
         self.clear_image(self.width,self.height)
         
-    def initialise_program_table(self):
+    def draw_program_table(self,x_iter=None,y_iter=None):
+        """Draws the program table"""
+        if x_iter == None:
+            x_iter = xrange(self.width)
+        if y_iter == None:
+            y_iter = xrange(self.height)
         program_table = self.gladeui.get_widget("programTable").window
-        program_table.clear()
         pt_width, pt_height = program_table.get_size()
-        width_per_pixel = pt_width/self.width
-        height_per_pixel = pt_height/self.height
+        pt_width, pt_height = pt_width-1, pt_height-1
+        width_per_pixel = pt_width//self.width
+        height_per_pixel = pt_height//self.height
+        extra_width_cutoff = self.width-(pt_width%(width_per_pixel*self.width))
+        extra_height_cutoff = self.height-(pt_height%(height_per_pixel*self.height))
         
         colormap = gtk.gdk.colormap_get_system()
         black = colormap.alloc_color('black')
@@ -405,43 +445,66 @@ class UI:
 
         gc = gtk.gdk.GC(drawable=program_table,\
                         foreground=black,\
-                        background=black)
+                        background=black,
+                        line_width=1)
 
-        for x in xrange(self.width):
-            for y in xrange(self.height):
+        for x in x_iter:
+            for y in y_iter:
                 gc.set_foreground(black)
-                program_table.draw_rectangle(gc,False,x*width_per_pixel,y*height_per_pixel,width_per_pixel,height_per_pixel)    
+                l = x*width_per_pixel + int(x>extra_width_cutoff)*(x-extra_width_cutoff)
+                w = width_per_pixel + int(x>=extra_width_cutoff)
+                t = y*height_per_pixel + int(y>extra_height_cutoff)*(y-extra_height_cutoff)
+                h = height_per_pixel + int(y>=extra_height_cutoff)
+
+                if (x,y) == self.current_pixel:
+                    gc.set_line_attributes(2,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
+                    l=l+1
+                    w=w-2
+                    t=t+1
+                    h=h-2
+                else:
+                    gc.set_line_attributes(1,gtk.gdk.LINE_SOLID,gtk.gdk.CAP_BUTT,gtk.gdk.JOIN_MITER)
+                program_table.draw_rectangle(gc,False,l,t,w,h)    
                 try:
                     pixel = self.pixels[y*self.width+x]
-                    fg = colormap.alloc_color(piedit.colors.rgb_to_hex(pixel))
+                    fg = colormap.alloc_color(pixel)
                     gc.set_foreground(fg)
                 except AttributeError:
                     gc.set_foreground(white)
-                program_table.draw_rectangle(gc,True,x*width_per_pixel+1,y*height_per_pixel+1,width_per_pixel-1,height_per_pixel-1)    
+                program_table.draw_rectangle(gc,True,l+1,t+1,w-1,h-1)          
+
+    def highlight_pixel(self,x,y):
+        if self.current_pixel == None:
+            old_x,old_y = 0,0
+        else:
+            old_x,old_y = self.current_pixel
+        self.current_pixel = (x,y)
+        self.draw_program_table([old_x,x],[old_y,y])
+        self.draw_program_table([x],[y])
     
     def increase_width(self):
         for i,y in enumerate(xrange(self.height)):
-            self.pixels.insert((y*self.width+i)+self.width,piedit.colors.hex_to_rgb(piedit.colors.white))
+            self.pixels.insert((y*self.width+i)+self.width,piedit.colors.white)
         self.width = self.width+1
-        self.initialise_program_table()
+        self.draw_program_table()
     
     def decrease_width(self):
         if self.width > 1:
             for i,y in enumerate(xrange(self.height)):
                 del self.pixels[(y*self.width)+self.width-1-i]
             self.width = self.width-1
-            self.initialise_program_table()
+            self.draw_program_table()
 
     def increase_height(self):
-        self.pixels.extend([piedit.colors.hex_to_rgb(piedit.colors.white) for x in xrange(self.width)])
+        self.pixels.extend([piedit.colors.white for x in xrange(self.width)])
         self.height = self.height+1
-        self.initialise_program_table()
+        self.draw_program_table()
     
     def decrease_height(self):
         if self.height > 1:
             self.pixels[self.width*self.height-self.width:] = []
             self.height = self.height-1
-            self.initialise_program_table()
+            self.draw_program_table()
 
     
 class MessageHandler:
